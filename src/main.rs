@@ -9,6 +9,8 @@ use winit_input_helper::WinitInputHelper;
 use pixels::{SurfaceTexture, Pixels};
 
 use lib::raytracer::*;
+use lib::object::*;
+use lib::math::{Vec3, Transform};
 
 const SCREEN_WIDTH: u32 = 640;
 const SCREEN_HEIGHT: u32 = 480;
@@ -20,8 +22,26 @@ fn main() {
     let surface_texture = SurfaceTexture::new(width, height, &window);
     let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture).unwrap();
 
-    let mut raytracer = Raytracer::new();
-    let scene = Scene::new(SCREEN_WIDTH, SCREEN_HEIGHT);
+    let mut scene = Scene::new(SCREEN_WIDTH, SCREEN_HEIGHT);
+    scene.add(Polygon::new(
+	Vec3(-100., 1., 2.),
+	Vec3(100., 1., 2.),
+	Vec3(-100., 1., 100.),
+	Material::new(Color::new(0x00, 0xff, 0x00))
+    ));
+    scene.add(Polygon::new(
+	Vec3(100., 1., 2.),
+	Vec3(-100., 1., 100.),
+	Vec3(100., 1., 100.),
+	Material::new(Color::new(0xff, 0x00, 0x00))
+    ));
+    scene.add(Plane::new(
+	Vec3(0., -1., 0.), 0.,
+	Material::new(Color::new(0x50, 0x50, 0x50))
+    ));
+    scene.camera.transform(Transform::Scale(0.1));
+    scene.camera.transform(Transform::Shift(Vec3(0., 0., -10.)));
+    let mut raytracer = Raytracer::new(scene);
 
     event_loop.run(move |event, _, flow_control| {
 	if let Event::WindowEvent { event: CloseRequested, .. } = event {
@@ -29,7 +49,7 @@ fn main() {
 	}
 	if let Event::RedrawRequested(_) = event {
 	    let frame = pixels.get_frame();
-	    let canvas: &Canvas = raytracer.render(&scene);
+	    let canvas: &Canvas = raytracer.render();
 	    for (pixel, Pixel(r, g, b)) in frame.chunks_exact_mut(4).zip(canvas.iter().cloned()) {
 		    pixel[0] = r;
 		    pixel[1] = g;

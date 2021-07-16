@@ -1,3 +1,3 @@
 pub mod raytracer;
-pub mod body;
-mod math;
+pub mod object;
+pub mod math;
