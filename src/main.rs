@@ -1,11 +1,14 @@
-mod raytracer;
+mod lib;
 
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
+use winit::event::WindowEvent::CloseRequested;
+use winit::event_loop::ControlFlow::Exit;
 use winit::event_loop::EventLoop;
 use winit::event::Event;
 use winit_input_helper::WinitInputHelper;
 use pixels::{SurfaceTexture, Pixels};
-use raytracer::*;
+
+use lib::raytracer::*;
 
 const SCREEN_WIDTH: u32 = 640;
 const SCREEN_HEIGHT: u32 = 480;
@@ -13,17 +16,20 @@ const SCREEN_HEIGHT: u32 = 480;
 fn main() {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
-    let (window, width, height, _) = create_window("Test pixles", &event_loop);
+    let (window, width, height, _) = create_window("Test pixels", &event_loop);
     let surface_texture = SurfaceTexture::new(width, height, &window);
     let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture).unwrap();
 
-    let raytracer = Raytracer::new(SCREEN_WIDTH, SCREEN_HEIGHT);
-    let scene = Scene::new();
+    let mut raytracer = Raytracer::new();
+    let scene = Scene::new(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    event_loop.run(move |event, _, _| {
+    event_loop.run(move |event, _, flow_control| {
+	if let Event::WindowEvent { event: CloseRequested, .. } = event {
+	    *flow_control = Exit;
+	}
 	if let Event::RedrawRequested(_) = event {
 	    let frame = pixels.get_frame();
-	    let canvas: Canvas = raytracer.render(&scene);
+	    let canvas: &Canvas = raytracer.render(&scene);
 	    for (pixel, Pixel(r, g, b)) in frame.chunks_exact_mut(4).zip(canvas.iter().cloned()) {
 		    pixel[0] = r;
 		    pixel[1] = g;
@@ -36,8 +42,8 @@ fn main() {
 	if input.update(&event) {
 	    if let Some(size) = input.window_resized() {
 		pixels.resize_surface(size.width, size.height);
+		window.request_redraw();
 	    }
-	    window.request_redraw();
 	}
     });
 }
@@ -87,6 +93,7 @@ fn create_window(
     window.set_inner_size(default_size);
     window.set_min_inner_size(Some(min_size));
     window.set_outer_position(center);
+    window.set_resizable(false);
     window.set_visible(true);
 
     let size = default_size.to_physical::<f64>(hidpi_factor);
