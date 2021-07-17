@@ -91,6 +91,27 @@ impl Object for Plane {
     }
 }
 
+pub struct Sphere {
+    sphere: math::Sphere,
+    material: Material,
+}
+
+impl Sphere {
+    pub fn new(center: Point3, radius: f64, material: Material) -> Sphere {
+	Sphere {
+	    sphere: math::Sphere(center, radius),
+	    material,
+	}
+    }
+}
+
+impl Object for Sphere {
+    fn intersect(&self, ray: &Ray) -> Option<Intersection> {
+	let (p, refl) = self.sphere.intersection(ray)?;
+	Some(Intersection::new(p, refl, self.material))
+    }
+}
+
 struct LightColor {
     color: Color
 }

@@ -112,7 +112,7 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
 }
 
 fn fix_point_reflect(p: Point3, v: Vec3, n: Vec3) -> (Point3, Vec3) {
-    let mut n = n;
+    let mut n = n.norm();
     if n.dot(v) > 0. {
 	n = -1. * n;
     }
@@ -228,9 +228,9 @@ pub struct Camera {
 impl Camera {
     pub fn new(width: u32, height: u32) -> Camera {
 	Camera {
-	    position: Vec3(0., height as f64 / 2., 0.),
+	    position: Vec3(0., height as f64 / 2., -(height as f64)),
 	    direction: Vec3(0., 0., 1.),
-	    distance: 1.,
+	    distance: height as f64,
 	    screen_x: Vec3(-1., 0., 0.),
 	    screen_y: Vec3(0., -1., 0.),
 	    screen_height: height as f64,

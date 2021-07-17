@@ -39,8 +39,21 @@ fn main() {
 	Vec3(0., -1., 0.), 0.,
 	Material::new(Color::new(0x50, 0x50, 0x50))
     ));
-    scene.camera.transform(Transform::Scale(0.1));
-    scene.camera.transform(Transform::Shift(Vec3(0., 0., -10.)));
+    scene.add(Sphere::new(
+	Vec3(0., 0., 50.), 50.,
+	Material::new(Color::new(0x00, 0x00, 0xff))
+    ));
+    scene.add(Sphere::new(
+	Vec3(-150., 20., 50.), 20.,
+	Material::new(Color::new(0xff, 0xff, 0x00))
+    ));
+    scene.add(Sphere::new(
+	Vec3(150., 20., 50.), 20.,
+	Material::new(Color::new(0xff, 0xff, 0x00))
+    ));
+    // scene.camera.transform(Transform::Scale(0.1));
+    // scene.camera.transform(Transform::ScaleCameraDistance(10.));
+    scene.camera.transform(Transform::Shift(Vec3(0., 0., -20.)));
     let mut raytracer = Raytracer::new(scene);
 
     event_loop.run(move |event, _, flow_control| {
