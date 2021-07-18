@@ -16,17 +16,17 @@ impl Raytracer {
 
     pub fn render(&mut self) -> &Canvas {
 	let mut canvas = self.canvas.take().unwrap();
-	canvas.update(|r: Ray| self.trace(r), &self.scene.camera);
+	canvas.update(|r, p| self.trace(r, p), &self.scene.camera);
 	self.canvas.replace(canvas);
 	return self.canvas.as_ref().unwrap();
     }
 
-    fn trace(&self, ray: Ray) -> Pixel {
+    fn trace(&self, ray: Ray, point: Point3) -> Pixel {
 	if let Some(int) = self.scene.nearest_intersection(&ray) {
-	    int.material.color.pixel()
+	    int.material.color.add(self.scene.calc_light(int.point).color())
 	} else {
-	    Pixel::default()
-	}
+	    Color::default()
+	}.pixel()
     }
 }
 
@@ -72,6 +72,18 @@ impl Scene {
 
 	return res;
     }
+
+    fn calc_light(&self, point: Point3) -> LightColor {
+	let mut res = LightColor::new(Color::new(0x00, 0x00, 0x00), 0.);
+
+	for light in self.lights.iter() {
+	    if let Some(color) = light.calc(point, &self.bodies) {
+		res = res.add(color);
+	    }
+	}
+	
+	return res;
+    }
 }
 
 pub struct Canvas {
@@ -95,7 +107,7 @@ impl Canvas {
     }
 
     fn update<T>(&mut self, f: T, camera: &Camera)
-    where T: Fn(Ray) -> Pixel {
+    where T: Fn(Ray, Point3) -> Pixel {
 	self.matrix
 	    .iter_mut()
 	    .zip(0..)
@@ -104,13 +116,16 @@ impl Canvas {
 		    .zip(0..)
 		    .map(move |(pixel, x)| ((x, y), pixel)))
 	    .for_each(|(coords, pixel)| {
-		*pixel = f(camera.get_ray(coords));
+		*pixel = f(camera.get_ray(coords), camera.screen_intersection(coords));
 	    });
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct Pixel(pub u8, pub u8, pub u8);
+
+impl Pixel {
+}
 
 impl Default for Pixel {
     fn default() -> Self {

@@ -19,6 +19,30 @@ impl Color {
     pub fn pixel(&self) -> Pixel {
 	Pixel(self.r, self.g, self.b)
     }
+
+    pub fn add(&self, rhs: Color) -> Color {
+	Color::new(self.r.saturating_add(rhs.r),
+		   self.g.saturating_add(rhs.g),
+		   self.b.saturating_add(rhs.b))
+    }
+
+    pub fn mul(&self, fact: u8) -> Color {
+	Color::new(self.r.saturating_mul(fact),
+		   self.g.saturating_mul(fact),
+		   self.b.saturating_mul(fact))
+    }
+
+    pub fn mul_float(&self, fact: f64) -> Color {
+	Color::new((self.r as f64 * fact) as u8,
+		   (self.g as f64 * fact) as u8,
+		   (self.b as f64 * fact) as u8)
+    }
+
+    pub fn div(&self, fact: u8) -> Color {
+	Color::new(self.r / fact,
+		   self.g / fact,
+		   self.b / fact)
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -112,25 +136,53 @@ impl Object for Sphere {
     }
 }
 
-struct LightColor {
-    color: Color
+#[derive(Clone, Copy)]
+pub struct LightColor {
+    color: Color,
+    intensity: f64,
 }
 
 impl LightColor {
-    fn new(color: Color) -> Self { Self { color } }
+    pub fn new(color: Color, intensity: f64) -> Self { Self { color, intensity } }
+    pub fn add(&self, other: LightColor) -> LightColor {
+	if self.intensity < f64::EPSILON {
+	    other
+	} else if other.intensity < f64::EPSILON  {
+	    self.clone()
+	} else {
+	    let fact = other.intensity / self.intensity;
+	    LightColor::new(self.color.mul_float(1. / fact).add(other.color.mul_float(fact)), self.intensity + other.intensity)
+	}
+    }
+    pub fn color(&self) -> Color {
+	self.color.mul_float(self.intensity)
+    }
 }
 
 pub trait Light {
-    fn min_dist(&self, p: Point3) -> (f64, LightColor);
+    fn calc(&self, p: Point3, it: &[Box<dyn Object>]) -> Option<LightColor>;
 }
 
-struct PointLight {
+pub struct PointLight {
     position: Point3,
     color: Color
 }
 
+impl PointLight {
+    pub fn new(position: Point3, color: Color) -> Self { Self { position, color } }
+}
+
 impl Light for PointLight {
-    fn min_dist(&self, p: Point3) -> (f64, LightColor) {
-	((p - self.position).len(), LightColor::new(self.color))
+    fn calc(&self, p: Point3, it: &[Box<dyn Object>]) -> Option<LightColor> {
+	let dist = p.distance(self.position);
+	let ray = Ray::new(p, self.position - p);
+	for object in it {
+	    if let Some(int) = object.intersect(&ray) {
+		if ray.distance(int.point) < dist {
+		    return None;
+		}
+	    }
+	}
+	Some(LightColor::new(self.color, 0.5))
     }
 }
