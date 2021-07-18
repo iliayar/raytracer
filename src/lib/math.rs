@@ -211,8 +211,9 @@ impl Ray {
 pub enum Transform {
     Shift(Vec3),
     Rotate(f64, f64, f64),
-    Scale(f64),
+    ScaleCameraScreen(f64),
     ScaleCameraDistance(f64),
+    MoveCamera(f64),
 }
 
 pub struct Camera {
@@ -228,11 +229,11 @@ pub struct Camera {
 impl Camera {
     pub fn new(width: u32, height: u32) -> Camera {
 	Camera {
-	    position: Vec3(0., height as f64 / 2., -(height as f64)),
+	    position: Vec3(0., 0.5, -1.),
 	    direction: Vec3(0., 0., 1.),
-	    distance: height as f64,
-	    screen_x: Vec3(-1., 0., 0.),
-	    screen_y: Vec3(0., -1., 0.),
+	    distance: 1.,
+	    screen_x: Vec3(-1. / width as f64, 0., 0.),
+	    screen_y: Vec3(0., -1. / height as f64, 0.),
 	    screen_height: height as f64,
 	    screen_width: width as f64,
 	}
@@ -246,17 +247,20 @@ impl Camera {
 		self.position = self.position + vec;
 	    },
 	    Rotate(ax, ay, az) => {
-		let screen_center = self.position + self.direction * self.distance;
-		self.direction = self.direction.rotate_by_point(ax, ay, az, self.position);
+		let screen_center = self.direction * self.distance;
+		self.direction = self.direction.rotate(ax, ay, az);
 		self.screen_x = self.screen_x.rotate_by_point(ax, ay, az, screen_center);
 		self.screen_y = self.screen_y.rotate_by_point(ax, ay, az, screen_center);
 	    },
-	    Scale(factor) => {
+	    ScaleCameraScreen(factor) => {
 		self.screen_x = self.screen_x * factor;
 		self.screen_y = self.screen_y * factor;
 	    },
 	    ScaleCameraDistance(factor) => {
 		self.distance *= factor;
+	    },
+	    MoveCamera(distance) => {
+		self.position = self.position + self.direction * distance;
 	    },
 	    _ => panic!("Unsupported transform for camera")
 	}

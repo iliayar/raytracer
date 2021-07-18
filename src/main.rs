@@ -4,7 +4,7 @@ use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::event::WindowEvent::CloseRequested;
 use winit::event_loop::ControlFlow::Exit;
 use winit::event_loop::EventLoop;
-use winit::event::Event;
+use winit::event::{Event, VirtualKeyCode};
 use winit_input_helper::WinitInputHelper;
 use pixels::{SurfaceTexture, Pixels};
 
@@ -24,15 +24,15 @@ fn main() {
 
     let mut scene = Scene::new(SCREEN_WIDTH, SCREEN_HEIGHT);
     scene.add(Polygon::new(
-	Vec3(-100., 1., 2.),
-	Vec3(100., 1., 2.),
-	Vec3(-100., 1., 100.),
+	Vec3(-1., 0., 0.),
+	Vec3(1., 0., 0.),
+	Vec3(-1., 0., 1.),
 	Material::new(Color::new(0x00, 0xff, 0x00))
     ));
     scene.add(Polygon::new(
-	Vec3(100., 1., 2.),
-	Vec3(-100., 1., 100.),
-	Vec3(100., 1., 100.),
+	Vec3(1., 0., 0.),
+	Vec3(-1., 0., 1.),
+	Vec3(1., 0., 1.),
 	Material::new(Color::new(0xff, 0x00, 0x00))
     ));
     scene.add(Plane::new(
@@ -40,20 +40,20 @@ fn main() {
 	Material::new(Color::new(0x50, 0x50, 0x50))
     ));
     scene.add(Sphere::new(
-	Vec3(0., 0., 50.), 50.,
+	Vec3(0., 0., 0.5), 0.5,
 	Material::new(Color::new(0x00, 0x00, 0xff))
     ));
     scene.add(Sphere::new(
-	Vec3(-150., 20., 50.), 20.,
+	Vec3(-1.5, 0.2, 0.5), 0.2,
 	Material::new(Color::new(0xff, 0xff, 0x00))
     ));
     scene.add(Sphere::new(
-	Vec3(150., 20., 50.), 20.,
+	Vec3(1.50, 0.2, 0.5), 0.2,
 	Material::new(Color::new(0xff, 0xff, 0x00))
     ));
-    // scene.camera.transform(Transform::Scale(0.1));
+    // scene.camera.transform(Transform::ScaleCameraScreen(3.));
     // scene.camera.transform(Transform::ScaleCameraDistance(10.));
-    scene.camera.transform(Transform::Shift(Vec3(0., 0., -20.)));
+    // scene.camera.transform(Transform::MoveCamera(-20.));
     let mut raytracer = Raytracer::new(scene);
 
     event_loop.run(move |event, _, flow_control| {
@@ -76,6 +76,38 @@ fn main() {
 	    if let Some(size) = input.window_resized() {
 		pixels.resize_surface(size.width, size.height);
 		window.request_redraw();
+	    }
+	    if input.key_pressed(VirtualKeyCode::W) {
+		raytracer.scene.camera.transform(Transform::MoveCamera(1.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::S) {
+		raytracer.scene.camera.transform(Transform::MoveCamera(-1.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::Left) {
+		raytracer.scene.camera.transform(Transform::Rotate(0., std::f64::consts::FRAC_PI_8, 0.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::Right) {
+		raytracer.scene.camera.transform(Transform::Rotate(0., - std::f64::consts::FRAC_PI_8, 0.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::Up) {
+		raytracer.scene.camera.transform(Transform::Rotate(- std::f64::consts::FRAC_PI_8, 0., 0.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::Down) {
+		raytracer.scene.camera.transform(Transform::Rotate(std::f64::consts::FRAC_PI_8, 0., 0.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::Plus) {
+		raytracer.scene.camera.transform(Transform::ScaleCameraDistance(2.));
+		window.request_redraw()
+	    }
+	    if input.key_pressed(VirtualKeyCode::Minus) {
+		raytracer.scene.camera.transform(Transform::ScaleCameraDistance(0.5));
+		window.request_redraw()
 	    }
 	}
     });
