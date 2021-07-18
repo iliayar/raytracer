@@ -16,17 +16,23 @@ impl Raytracer {
 
     pub fn render(&mut self) -> &Canvas {
 	let mut canvas = self.canvas.take().unwrap();
-	canvas.update(|r, p| self.trace(r, p), &self.scene.camera);
+	canvas.update(|r| self.trace(r, 0).pixel(), &self.scene.camera);
 	self.canvas.replace(canvas);
 	return self.canvas.as_ref().unwrap();
     }
 
-    fn trace(&self, ray: Ray, point: Point3) -> Pixel {
+    fn trace(&self, ray: Ray, depth: i32) -> Color {
 	if let Some(int) = self.scene.nearest_intersection(&ray) {
-	    int.material.color.add(self.scene.calc_light(int.point).color())
+	    let color = self.scene.calc_light(&ray, &int).calc_color(int.material);
+	    if int.material.reflection < f64::EPSILON || depth > 2 {
+		color
+	    } else {
+		let reflected_color = self.trace(int.reflect, depth + 1);
+		color.mul_float(1. - int.material.reflection).add(reflected_color.mul_float(int.material.reflection))
+	    }
 	} else {
 	    Color::default()
-	}.pixel()
+	}
     }
 }
 
@@ -73,11 +79,11 @@ impl Scene {
 	return res;
     }
 
-    fn calc_light(&self, point: Point3) -> LightColor {
-	let mut res = LightColor::new(Color::new(0x00, 0x00, 0x00), 0.);
+    fn calc_light(&self, ray: &Ray, intersection: &Intersection) -> LightColor {
+	let mut res = LightColor::new(None, 0.);
 
 	for light in self.lights.iter() {
-	    if let Some(color) = light.calc(point, &self.bodies) {
+	    if let Some(color) = light.calc(ray, intersection, &self.bodies) {
 		res = res.add(color);
 	    }
 	}
@@ -107,7 +113,7 @@ impl Canvas {
     }
 
     fn update<T>(&mut self, f: T, camera: &Camera)
-    where T: Fn(Ray, Point3) -> Pixel {
+    where T: Fn(Ray) -> Pixel {
 	self.matrix
 	    .iter_mut()
 	    .zip(0..)
@@ -116,7 +122,7 @@ impl Canvas {
 		    .zip(0..)
 		    .map(move |(pixel, x)| ((x, y), pixel)))
 	    .for_each(|(coords, pixel)| {
-		*pixel = f(camera.get_ray(coords), camera.screen_intersection(coords));
+		*pixel = f(camera.get_ray(coords));
 	    });
     }
 }

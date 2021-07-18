@@ -27,33 +27,33 @@ fn main() {
 	Vec3(-1., 0., 0.),
 	Vec3(1., 0., 0.),
 	Vec3(-1., 0., 1.),
-	Material::new(Color::new(0x00, 0xff, 0x00))
+	Material::new(Color::new(0x00, 0xff, 0x00), 0.8)
     ));
     scene.add(Polygon::new(
 	Vec3(1., 0., 0.),
 	Vec3(-1., 0., 1.),
 	Vec3(1., 0., 1.),
-	Material::new(Color::new(0xff, 0x00, 0x00))
+	Material::new(Color::new(0xff, 0x00, 0x00), 0.3)
     ));
     scene.add(Plane::new(
 	Vec3(0., -1., 0.), 0.,
-	Material::new(Color::new(0x50, 0x50, 0x50))
+	Material::new(Color::new(0x50, 0x50, 0x50), 0.5)
     ));
     scene.add(Sphere::new(
 	Vec3(0., 0., 0.5), 0.5,
-	Material::new(Color::new(0x00, 0x00, 0xff))
+	Material::new_shine(Color::new(0x00, 0x00, 0xff), 8, 0.6)
     ));
     scene.add(Sphere::new(
 	Vec3(-1.5, 0.2, 0.5), 0.2,
-	Material::new(Color::new(0xff, 0xff, 0x00))
+	Material::new(Color::new(0xff, 0xff, 0x00), 0.1)
     ));
     scene.add(Sphere::new(
 	Vec3(1.50, 0.2, 0.5), 0.2,
-	Material::new(Color::new(0xff, 0xff, 0x00))
+	Material::new_shine(Color::new(0xff, 0xff, 0x00), 10, 0.8)
     ));
-    scene.add_light(PointLight::new(
-	Vec3(0., 0.5, 2.),
-	Color::new(0xff, 0xff, 0xff)));
+    scene.add_light(PointLight::new(Vec3(0., 0.5, 2.), 0.95));
+    // scene.add_light(PointLight::new_color(Vec3(-1.5, 3., 2.), 0.4, Color::new(0xff, 0x00, 0x00)));
+    scene.add_light(AmbientLight::new(0.05));
     // scene.camera.transform(Transform::ScaleCameraScreen(3.));
     // scene.camera.transform(Transform::ScaleCameraDistance(10.));
     // scene.camera.transform(Transform::MoveCamera(-20.));

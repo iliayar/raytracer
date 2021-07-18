@@ -10,12 +10,13 @@ pub struct Color {
 
 impl Default for Color {
     fn default() -> Self {
-        Color::new(0x00, 0x00, 0x00)
+	Color::new(0x00, 0x00, 0x00)
     }
 }
 
 impl Color {
     pub fn new(r: u8, g: u8, b: u8) -> Self { Self { r, g, b } }
+    pub fn white() -> Color { Color::new(0xff, 0xff, 0xff) }
     pub fn pixel(&self) -> Pixel {
 	Pixel(self.r, self.g, self.b)
     }
@@ -24,6 +25,12 @@ impl Color {
 	Color::new(self.r.saturating_add(rhs.r),
 		   self.g.saturating_add(rhs.g),
 		   self.b.saturating_add(rhs.b))
+    }
+
+    pub fn sub(&self, rhs: Color) -> Color {
+	Color::new(self.r.saturating_sub(rhs.r),
+		   self.g.saturating_sub(rhs.g),
+		   self.b.saturating_sub(rhs.b))
     }
 
     pub fn mul(&self, fact: u8) -> Color {
@@ -47,27 +54,39 @@ impl Color {
 
 #[derive(Clone, Copy)]
 pub struct Material {
-    pub color: Color
+    pub color: Color,
+    pub shine: Option<i32>,
+    pub reflection: f64,
 }
 
 impl Default for Material {
     fn default() -> Self {
-        Material::new(Color::default())
+	Material::new(Color::default(), 0.)
     }
 }
 
 impl Material {
-    pub fn new(color: Color) -> Self { Self { color } }
+    pub fn new(color: Color, reflection: f64) -> Self { Self { color, shine: None, reflection } }
+    pub fn new_shine(color: Color, shine: i32, reflection: f64) -> Self {
+	Self {
+	    color,
+	    shine: Some(shine),
+	    reflection
+	}
+    }
+
 }
 
 pub struct Intersection {
     pub point: Point3,
-    pub reflect: Vec3,
-    pub material: Material
+    pub n: Vec3,
+    pub reflect: Ray,
+    pub material: Material,
+
 }
 
 impl Intersection {
-    pub fn new(point: Point3, reflect: Vec3, material: Material) -> Self { Self { point, reflect, material } }
+    pub fn new(point: Point3, n: Vec3, reflect: Ray, material: Material) -> Self { Self { point, n, reflect, material } }
 }
 
 pub trait Object {
@@ -89,8 +108,8 @@ impl Polygon {
 
 impl Object for Polygon {
     fn intersect(&self, ray: &Ray) -> Option<Intersection> {
-	let (p, refl) = self.polygon.intersection(ray)?;
-	Some(Intersection::new(p, refl, self.material))
+	let (p, refl, n) = self.polygon.intersection(ray)?;
+	Some(Intersection::new(p, n, Ray::new(p, refl), self.material))
     }
 }
 
@@ -110,8 +129,8 @@ impl Plane {
 
 impl Object for Plane {
     fn intersect(&self, ray: &Ray) -> Option<Intersection> {
-	let (p, refl) = self.plane.intersection(ray)?;
-	Some(Intersection::new(p, refl, self.material))
+	let (p, refl, n) = self.plane.intersection(ray)?;
+	Some(Intersection::new(p, n, Ray::new(p, refl), self.material))
     }
 }
 
@@ -131,51 +150,66 @@ impl Sphere {
 
 impl Object for Sphere {
     fn intersect(&self, ray: &Ray) -> Option<Intersection> {
-	let (p, refl) = self.sphere.intersection(ray)?;
-	Some(Intersection::new(p, refl, self.material))
+	let (p, refl, n) = self.sphere.intersection(ray)?;
+	Some(Intersection::new(p, n, Ray::new(p, refl), self.material))
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct LightColor {
-    color: Color,
+    color: Option<Color>,
     intensity: f64,
 }
 
 impl LightColor {
-    pub fn new(color: Color, intensity: f64) -> Self { Self { color, intensity } }
+    pub fn new(color: Option<Color>, intensity: f64) -> Self { Self { color: color, intensity } }
     pub fn add(&self, other: LightColor) -> LightColor {
 	if self.intensity < f64::EPSILON {
 	    other
 	} else if other.intensity < f64::EPSILON  {
 	    self.clone()
 	} else {
-	    let fact = other.intensity / self.intensity;
-	    LightColor::new(self.color.mul_float(1. / fact).add(other.color.mul_float(fact)), self.intensity + other.intensity)
+	    let fact = other.intensity / (self.intensity + other.intensity);
+	    let intensity = self.intensity + other.intensity;
+	    if self.color.is_none() && other.color.is_none() {
+		LightColor::new(None, self.intensity + other.intensity)
+	    } else {
+		let color = self.color.unwrap_or(Color::white()).mul_float(1. - fact).add(other.color.unwrap_or(Color::white()).mul_float(fact));
+		LightColor::new(Some(color), intensity)
+	    }
+	    
 	}
     }
-    pub fn color(&self) -> Color {
-	self.color.mul_float(self.intensity)
+    pub fn calc_color(&self, material: Material) -> Color {
+	if let Some(color) = self.color {
+	    material.color.mul_float(self.intensity / 2.).add(color.mul_float(self.intensity / 2.))
+	} else {
+	    material.color.mul_float(self.intensity)
+	}
     }
 }
 
 pub trait Light {
-    fn calc(&self, p: Point3, it: &[Box<dyn Object>]) -> Option<LightColor>;
+    fn calc(&self, ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor>;
 }
 
 pub struct PointLight {
     position: Point3,
-    color: Color
+    color: Option<Color>,
+    intensity: f64,
 }
 
 impl PointLight {
-    pub fn new(position: Point3, color: Color) -> Self { Self { position, color } }
+    pub fn new(position: Point3, intensity: f64) -> Self { Self { position, color: None, intensity } }
+    pub fn new_color(position: Point3, intensity: f64, color: Color) -> Self { Self { position, color: Some(color), intensity } }
 }
 
 impl Light for PointLight {
-    fn calc(&self, p: Point3, it: &[Box<dyn Object>]) -> Option<LightColor> {
+    fn calc(&self, ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor> {
+	let p = intersection.point;
 	let dist = p.distance(self.position);
-	let ray = Ray::new(p, self.position - p);
+	let dir = self.position - p;
+	let ray = Ray::new(p, dir);
 	for object in it {
 	    if let Some(int) = object.intersect(&ray) {
 		if ray.distance(int.point) < dist {
@@ -183,6 +217,27 @@ impl Light for PointLight {
 		}
 	    }
 	}
-	Some(LightColor::new(self.color, 0.5))
+	let diffuse = self.intensity * dir.dot(intersection.n) / (dir.len() * intersection.n.len());
+	let shine_base = intersection.reflect.direction.dot(ray.direction) / (intersection.reflect.direction.len() * ray.direction.len());
+	Some(LightColor::new(self.color, diffuse + if let Some(shine) = intersection.material.shine {
+	    self.intensity * shine_base.powi(shine)
+	} else {
+	    0.
+	}))
+    }
+}
+
+pub struct AmbientLight {
+    color: Option<Color>,
+    intensity: f64,
+}
+
+impl AmbientLight {
+    pub fn new(intensity: f64) -> Self { Self { color: None, intensity } }
+}
+
+impl Light for AmbientLight {
+    fn calc(&self, _: &Ray, intersection: &Intersection, _: &[Box<dyn Object>]) -> Option<LightColor> {
+	Some(LightColor::new(self.color, self.intensity))
     }
 }

@@ -31,7 +31,7 @@ impl Vec3 {
 	Vec3(self.0 / rhs, self.1 / rhs, self.2 / rhs)
     }
 
-    fn dot(&self, rhs: Vec3) -> f64 {
+    pub fn dot(&self, rhs: Vec3) -> f64 {
 	self.0 * rhs.0 + self.1 * rhs.1 + self.2 * rhs.2
     }
 
@@ -111,12 +111,12 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
     v - 2. * v.dot(n.norm()) * n.norm()
 }
 
-fn fix_point_reflect(p: Point3, v: Vec3, n: Vec3) -> (Point3, Vec3) {
+fn fix_point_reflect(p: Point3, v: Vec3, n: Vec3) -> (Point3, Vec3, Vec3) {
     let mut n = n.norm();
     if n.dot(v) > 0. {
 	n = -1. * n;
     }
-    (p + n * f64::EPSILON, reflect(v, n))
+    (p + n * 100. * f64::EPSILON, reflect(v, n), n)
 }
 
 fn intersect_plane(ray: &Ray, n: Vec3, d: f64) -> Option<Point3> {
@@ -137,11 +137,11 @@ fn intersect_plane(ray: &Ray, n: Vec3, d: f64) -> Option<Point3> {
 pub struct Polygon(pub Point3, pub Point3, pub Point3);
 
 pub trait RayIntersect {
-    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3)>;
+    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3, Vec3)>;
 }
 
 impl RayIntersect for Polygon {
-    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3)> {
+    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3, Vec3)> {
 	let n = (self.1 - self.0).cross(self.2 - self.0);
 	let d = -1. * n.dot(self.0);
 	let int = intersect_plane(ray, n, d)?;
@@ -157,7 +157,7 @@ impl RayIntersect for Polygon {
 pub struct Sphere(pub Point3, pub f64);
 
 impl RayIntersect for Sphere {
-    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3)> {
+    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3, Vec3)> {
 	let center_vec = ray.point - self.0;
 	let a = ray.direction.dot(ray.direction);
 	let b = 2.0 * ray.direction.dot(center_vec);
@@ -188,7 +188,7 @@ impl RayIntersect for Sphere {
 pub struct Plane(pub Vec3, pub f64);
 
 impl RayIntersect for Plane {
-    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3)> {
+    fn intersection(&self, ray: &Ray) -> Option<(Point3, Vec3, Vec3)> {
 	Some(fix_point_reflect(intersect_plane(ray, self.0, self.1)?, ray.direction, self.0))
     }
 }
@@ -196,7 +196,7 @@ impl RayIntersect for Plane {
 #[derive(Debug,PartialEq)]
 pub struct Ray {
     point: Point3,
-    direction: Vec3
+    pub direction: Vec3
 }
 
 impl Ray {
