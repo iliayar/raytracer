@@ -51,8 +51,8 @@ fn main() {
 	Vec3(1.50, 0.2, 0.5), 0.2,
 	Material::new_shine(Color::new(0xff, 0xff, 0x00), 10, 0.8)
     ));
-    scene.add_light(PointLight::new(Vec3(0., 0.5, 2.), 0.65));
-    scene.add_light(DirectLight::new(Vec3(0., -1., 1.), 0.3));
+    scene.add_light(PointLight::new(Vec3(0., 0.5, 2.), 0.75));
+    scene.add_light(DirectLight::new(Vec3(0., -1., 1.), 0.2));
     // scene.add_light(PointLight::new_color(Vec3(-1.5, 3., 2.), 0.4, Color::new(0xff, 0x00, 0x00)));
     scene.add_light(AmbientLight::new(0.05));
     // scene.camera.transform(Transform::ScaleCameraScreen(3.));

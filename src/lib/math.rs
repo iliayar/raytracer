@@ -1,4 +1,6 @@
 
+mod camera;
+
 use std::ops::{Add, Sub, Mul, Div};
 
 #[derive(Clone,Copy,Debug)]
