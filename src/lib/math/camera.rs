@@ -74,3 +74,33 @@ impl Camera {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f64::consts::PI;
+
+    #[test]
+    fn camera() {
+	let camera = Camera::new(100, 100);
+
+	assert_eq!(camera.screen_x.cross(camera.screen_y).norm(), camera.direction);
+	// assert_eq!(camera.get_ray((0, 0)), Ray::new(Vec3(0., 50., 0.), Vec3(50., 50., 1.)));
+	// assert_eq!(camera.get_ray((50, 50)), Ray::new(Vec3(0., 50., 0.), Vec3(0., 0., 1.)));
+	// assert_eq!(camera.get_ray((100, 100)), Ray::new(Vec3(0., 50., 0.), Vec3(-50., -50., 1.)));
+	// assert_eq!(camera.get_ray((50, 0)), Ray::new(Vec3(0., 50., 0.), Vec3(0., 50., 1.)));
+    }
+
+    // #[test]
+    // fn intersection_plane() {
+    // 	let plane = Plane(Vec3(0., 1., 0.), 0.);
+
+    // 	assert_eq!(plane.intersection(&Ray::new(Vec3(0., 1., 0.), Vec3(0., -1., 0.))).unwrap().0, Vec3(0., 0. + f64::EPSILON, 0.));
+    // }
+
+    // #[test]
+    // fn intersection_polygon() {
+    // 	let polygon = Polygon(Vec3(0., 0., 1.), Vec3(0., 0., -1.), Vec3(1., 0., 0.));
+
+    // 	assert_eq!(polygon.intersection(&Ray::new(Vec3(0., 1., 0.), Vec3(0., -1., 0.))).unwrap().0, Vec3(0., 0. + f64::EPSILON * 2., 0.));
+    // }
+}
