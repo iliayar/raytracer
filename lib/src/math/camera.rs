@@ -1,6 +1,7 @@
 use super::vector::*;
 use super::ray::Ray;
 
+#[derive(Clone,Copy)]
 pub enum CameraTransform {
     ScaleScreen(f64),
     ScaleDistance(f64),

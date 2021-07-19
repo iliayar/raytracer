@@ -16,7 +16,7 @@ const SCREEN_HEIGHT: u32 = 480;
 fn main() {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
-    let (window, width, height, _) = create_window("Test pixels", &event_loop);
+    let (window, width, height, _) = create_window("Raytracer", &event_loop);
     let surface_texture = SurfaceTexture::new(width, height, &window);
     let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture).unwrap();
 
@@ -51,12 +51,19 @@ fn main() {
     ));
     scene.add_light(PointLight::new(Vec3(0., 0.5, 2.), 0.75));
     scene.add_light(DirectLight::new(Vec3(0., -1., 1.), 0.2));
-    // scene.add_light(PointLight::new_color(Vec3(-1.5, 3., 2.), 0.4, Color::new(0xff, 0x00, 0x00)));
     scene.add_light(AmbientLight::new(0.05));
-    // scene.camera.transform(Transform::ScaleCameraScreen(3.));
-    // scene.camera.transform(Transform::ScaleCameraDistance(10.));
-    // scene.camera.transform(Transform::MoveCamera(-20.));
     let mut raytracer = Raytracer::new(scene);
+
+    let movement_keymap: Vec<(VirtualKeyCode, CameraTransform)> = vec![
+	(VirtualKeyCode::W, CameraTransform::Move(1.)),
+	(VirtualKeyCode::S, CameraTransform::Move(-1.)),
+	(VirtualKeyCode::Left, CameraTransform::RotateHorizontal(std::f64::consts::FRAC_PI_8)),
+	(VirtualKeyCode::Right, CameraTransform::RotateHorizontal(-std::f64::consts::FRAC_PI_8)),
+	(VirtualKeyCode::Up, CameraTransform::RotateVertical(-std::f64::consts::FRAC_PI_8)),
+	(VirtualKeyCode::Down, CameraTransform::RotateVertical(std::f64::consts::FRAC_PI_8)),
+	(VirtualKeyCode::Plus, CameraTransform::ScaleDistance(2.)),
+	(VirtualKeyCode::Plus, CameraTransform::ScaleDistance(0.5)),
+    ];
 
     event_loop.run(move |event, _, flow_control| {
 	if let Event::WindowEvent { event: CloseRequested, .. } = event {
@@ -79,37 +86,11 @@ fn main() {
 		pixels.resize_surface(size.width, size.height);
 		window.request_redraw();
 	    }
-	    if input.key_pressed(VirtualKeyCode::W) {
-		raytracer.scene.camera.transform(CameraTransform::Move(1.));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::S) {
-		raytracer.scene.camera.transform(CameraTransform::Move(-1.));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::Left) {
-		raytracer.scene.camera.transform(CameraTransform::RotateHorizontal(std::f64::consts::FRAC_PI_8));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::Right) {
-		raytracer.scene.camera.transform(CameraTransform::RotateHorizontal(-std::f64::consts::FRAC_PI_8));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::Up) {
-		raytracer.scene.camera.transform(CameraTransform::RotateVertical(-std::f64::consts::FRAC_PI_8));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::Down) {
-		raytracer.scene.camera.transform(CameraTransform::RotateVertical(std::f64::consts::FRAC_PI_8));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::Plus) {
-		raytracer.scene.camera.transform(CameraTransform::ScaleDistance(2.));
-		window.request_redraw()
-	    }
-	    if input.key_pressed(VirtualKeyCode::Minus) {
-		raytracer.scene.camera.transform(CameraTransform::ScaleDistance(0.5));
-		window.request_redraw()
+	    for (key, mv) in movement_keymap.iter() {
+		if input.key_pressed(*key) {
+		    raytracer.scene.camera.transform(*mv);
+		    window.request_redraw();
+		}
 	    }
 	}
     });
