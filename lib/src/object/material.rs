@@ -1,4 +1,4 @@
-use crate::lib::raytracer::Pixel;
+use super::super::raytracer::Pixel;
 
 #[derive(Clone, Copy)]
 pub struct Color {

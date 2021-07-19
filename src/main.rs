@@ -1,5 +1,3 @@
-mod lib;
-
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::event::WindowEvent::CloseRequested;
 use winit::event_loop::ControlFlow::Exit;

@@ -10,3 +10,5 @@ edition = "2018"
 pixels = "0.4.0"
 winit = "0.25.0"
 winit_input_helper = "0.10.0"
+lib = { path = "./lib" }
+

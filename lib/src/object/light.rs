@@ -1,4 +1,4 @@
-use crate::lib::math::*;
+use super::super::math::*;
 
 use super::figures::Object;
 use super::figures::Intersection;
