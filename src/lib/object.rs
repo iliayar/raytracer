@@ -171,22 +171,37 @@ impl LightColor {
 	} else {
 	    let fact = other.intensity / (self.intensity + other.intensity);
 	    let intensity = self.intensity + other.intensity;
-	    if self.color.is_none() && other.color.is_none() {
-		LightColor::new(None, self.intensity + other.intensity)
+	    if let Some(color) = self.color {
+		if let Some(other_color) = other.color {
+		    LightColor::new(Some(color.mul_float(1. - fact).add(other_color.mul_float(fact))), intensity)
+		} else {
+		    LightColor::new(Some(color), intensity)
+		}
+	    } else if let Some(other_color) = other.color {
+		LightColor::new(Some(other_color), intensity)
 	    } else {
-		let color = self.color.unwrap_or(Color::white()).mul_float(1. - fact).add(other.color.unwrap_or(Color::white()).mul_float(fact));
-		LightColor::new(Some(color), intensity)
+		LightColor::new(None, self.intensity + other.intensity)
 	    }
-	    
 	}
     }
     pub fn calc_color(&self, material: Material) -> Color {
 	if let Some(color) = self.color {
-	    material.color.mul_float(self.intensity / 2.).add(color.mul_float(self.intensity / 2.))
+	    // FIXME
+	    material.color.mul_float(self.intensity * 3. / 4.).add(color.mul_float(self.intensity / 4.)) 
 	} else {
 	    material.color.mul_float(self.intensity)
 	}
     }
+}
+
+fn calc_light(dir: Vec3, ray: &Ray, intensity: f64, color: Option<Color>, intersection: &Intersection) -> LightColor {
+	let diffuse = intensity * dir.dot(intersection.n) / (dir.len() * intersection.n.len());
+	let shine_base = intersection.reflect.direction.dot(ray.direction) / (intersection.reflect.direction.len() * ray.direction.len());
+	LightColor::new(color, diffuse + if let Some(shine) = intersection.material.shine {
+	    intensity * shine_base.powi(shine)
+	} else {
+	    0.
+	})
 }
 
 pub trait Light {
@@ -205,7 +220,7 @@ impl PointLight {
 }
 
 impl Light for PointLight {
-    fn calc(&self, ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor> {
+    fn calc(&self, origin_ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor> {
 	let p = intersection.point;
 	let dist = p.distance(self.position);
 	let dir = self.position - p;
@@ -217,13 +232,7 @@ impl Light for PointLight {
 		}
 	    }
 	}
-	let diffuse = self.intensity * dir.dot(intersection.n) / (dir.len() * intersection.n.len());
-	let shine_base = intersection.reflect.direction.dot(ray.direction) / (intersection.reflect.direction.len() * ray.direction.len());
-	Some(LightColor::new(self.color, diffuse + if let Some(shine) = intersection.material.shine {
-	    self.intensity * shine_base.powi(shine)
-	} else {
-	    0.
-	}))
+	Some(calc_light(dir, &origin_ray, self.intensity, self.color, intersection))
     }
 }
 
@@ -239,5 +248,27 @@ impl AmbientLight {
 impl Light for AmbientLight {
     fn calc(&self, _: &Ray, intersection: &Intersection, _: &[Box<dyn Object>]) -> Option<LightColor> {
 	Some(LightColor::new(self.color, self.intensity))
+    }
+}
+
+pub struct DirectLight {
+    color: Option<Color>,
+    intensity: f64,
+    direction: Vec3,
+}
+
+impl DirectLight {
+    pub fn new(direction: Vec3, intensity: f64) -> Self { Self { color: None, intensity, direction } }
+}
+
+impl Light for DirectLight {
+    fn calc(&self, origin_ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor> {
+	let ray = Ray::new(intersection.point, -1. * self.direction);
+	for object in it {
+	    if let Some(_) = object.intersect(&ray) {
+		return None
+	    }
+	}
+	Some(calc_light(-1. * self.direction, &origin_ray, self.intensity, self.color, intersection))
     }
 }
