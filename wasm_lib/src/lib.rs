@@ -17,12 +17,12 @@ const SCREEN_WIDTH: u32 = 640;
 const SCREEN_HEIGHT: u32 = 480;
 
 #[wasm_bindgen]
-pub fn main() {
-    let document = web_sys::window().unwrap().document().unwrap();
-    let canvas = document
-	.create_element("canvas").unwrap()
-	.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
-    document.body().unwrap().append_child(&canvas).unwrap();
+pub fn main(canvas: web_sys::HtmlCanvasElement) {
+    // let document = web_sys::window().unwrap().document().unwrap();
+    // let canvas = document
+    // 	.create_element("canvas").unwrap()
+    // 	.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+    // document.body().unwrap().append_child(&canvas).unwrap();
     canvas.set_width(SCREEN_WIDTH);
     canvas.set_height(SCREEN_HEIGHT);
     canvas.style().set_property("border", "solid").unwrap();
