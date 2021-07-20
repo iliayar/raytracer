@@ -1,0 +1,3 @@
+#+TITLE: Raytracer
+
+Simple raytracer written in Rust. [[https://iliayar.ru/public-notes/projects/raytracer.html][Demo]] created using web assembly.
