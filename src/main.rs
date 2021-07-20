@@ -1,7 +1,6 @@
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::event::WindowEvent::CloseRequested;
-use winit::event_loop::ControlFlow::Exit;
-use winit::event_loop::EventLoop;
+use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{Event, VirtualKeyCode};
 use winit_input_helper::WinitInputHelper;
 use pixels::{SurfaceTexture, Pixels};
@@ -67,7 +66,7 @@ fn main() {
 
     event_loop.run(move |event, _, flow_control| {
 	if let Event::WindowEvent { event: CloseRequested, .. } = event {
-	    *flow_control = Exit;
+	    *flow_control = ControlFlow::Exit;
 	}
 	if let Event::RedrawRequested(_) = event {
 	    let frame = pixels.get_frame();
