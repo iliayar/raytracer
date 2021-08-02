@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use super::object::*;
-use super::{math, math::*};
+use super::math::*;
+use rayon::prelude::*;
 
 pub struct Raytracer {
     canvas: Option<Canvas>,
@@ -16,7 +19,8 @@ impl Raytracer {
 
     pub fn render(&mut self) -> &Canvas {
 	let mut canvas = self.canvas.take().unwrap();
-	canvas.update(|r| self.trace(r, 0).pixel(), &self.scene.camera);
+	let rt = Arc::new(&self);
+	canvas.update(|r| rt.trace(r, 0).pixel(), &rt.scene.camera);
 	self.canvas.replace(canvas);
 	return self.canvas.as_ref().unwrap();
     }
@@ -39,8 +43,8 @@ impl Raytracer {
 pub struct Scene {
     width: u32,
     height: u32,
-    bodies: Vec<Box<dyn Object>>,
-    lights: Vec<Box<dyn Light>>,
+    bodies: Vec<Box<dyn Object + Sync + Send>>,
+    lights: Vec<Box<dyn Light + Sync + Send>>,
     pub camera: Camera,
 }
 
@@ -55,10 +59,10 @@ impl Scene {
 	}
     }
 
-    pub fn add<T: Object + 'static>(&mut self, obj: T) {
+    pub fn add<T: Object + Send + Sync + 'static>(&mut self, obj: T) {
 	self.bodies.push(Box::new(obj));
     }
-    pub fn add_light<T: Light + 'static>(&mut self, light: T) {
+    pub fn add_light<T: Light + Send + Sync + 'static>(&mut self, light: T) {
 	self.lights.push(Box::new(light));
     }
 
@@ -113,14 +117,25 @@ impl Canvas {
     }
 
     fn update<T>(&mut self, f: T, camera: &Camera)
-    where T: Fn(Ray) -> Pixel {
+    where T: Fn(Ray) -> Pixel + Send + Sync {
+	// self.matrix
+	//     .iter_mut()
+	//     .zip(0..)
+	//     .flat_map(
+	// 	|(row, y)| row.iter_mut()
+	// 	    .zip(0..)
+	// 	    .map(move |(pixel, x)| ((x, y), pixel)))
+	//     .for_each(|(coords, pixel)| {
+	// 	*pixel = f(camera.get_ray(coords));
+	//     });
+	let height = self.matrix.len();
+	let width = self.matrix[0].len();
 	self.matrix
-	    .iter_mut()
-	    .zip(0..)
-	    .flat_map(
-		|(row, y)| row.iter_mut()
-		    .zip(0..)
-		    .map(move |(pixel, x)| ((x, y), pixel)))
+	    .par_iter_mut()
+	    .zip((0..height).into_par_iter())
+	    .flat_map(|(row, y)| row.par_iter_mut()
+		      .zip((0..width).into_par_iter())
+			   .map(move |(pixel, x)| ((x as u32, y as u32), pixel)))
 	    .for_each(|(coords, pixel)| {
 		*pixel = f(camera.get_ray(coords));
 	    });

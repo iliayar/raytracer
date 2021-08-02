@@ -12,7 +12,7 @@ pub struct LightColor {
 }
 
 impl LightColor {
-    pub fn new(color: Option<Color>, intensity: f64) -> Self { Self { color: color, intensity } }
+    pub fn new(color: Option<Color>, intensity: f64) -> Self { Self { color, intensity } }
     pub fn add(&self, other: LightColor) -> LightColor {
 	if self.intensity < f64::EPSILON {
 	    other
@@ -46,16 +46,16 @@ impl LightColor {
 
 fn calc_light(dir: Vec3, ray: &Ray, intensity: f64, color: Option<Color>, intersection: &Intersection) -> LightColor {
 	let diffuse = intensity * dir.dot(intersection.n) / (dir.len() * intersection.n.len());
-	let shine_base = intersection.reflect.direction.dot(ray.direction) / (intersection.reflect.direction.len() * ray.direction.len());
+	let shine_base = intersection.reflect.direction.dot(ray.direction) / (intersection.reflect.direction.len() * ray.direction.len()) * -1.;
 	LightColor::new(color, diffuse + if let Some(shine) = intersection.material.shine {
-	    intensity * shine_base.powi(shine)
+	    intensity * shine_base.max(0.).powi(shine)
 	} else {
 	    0.
 	})
 }
 
 pub trait Light {
-    fn calc(&self, ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor>;
+    fn calc(&self, ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object + Send + Sync>]) -> Option<LightColor>;
 }
 
 pub struct PointLight {
@@ -70,7 +70,7 @@ impl PointLight {
 }
 
 impl Light for PointLight {
-    fn calc(&self, origin_ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor> {
+    fn calc(&self, origin_ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object + Send + Sync>]) -> Option<LightColor> {
 	let p = intersection.point;
 	let dist = p.distance(self.position);
 	let dir = self.position - p;
@@ -96,7 +96,7 @@ impl AmbientLight {
 }
 
 impl Light for AmbientLight {
-    fn calc(&self, _: &Ray, intersection: &Intersection, _: &[Box<dyn Object>]) -> Option<LightColor> {
+    fn calc(&self, _: &Ray, intersection: &Intersection, _: &[Box<dyn Object + Send + Sync>]) -> Option<LightColor> {
 	Some(LightColor::new(self.color, self.intensity))
     }
 }
@@ -112,7 +112,7 @@ impl DirectLight {
 }
 
 impl Light for DirectLight {
-    fn calc(&self, origin_ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object>]) -> Option<LightColor> {
+    fn calc(&self, origin_ray: &Ray, intersection: &Intersection, it: &[Box<dyn Object + Send + Sync>]) -> Option<LightColor> {
 	let ray = Ray::new(intersection.point, -1. * self.direction);
 	for object in it {
 	    if let Some(_) = object.intersect(&ray) {

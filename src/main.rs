@@ -9,8 +9,8 @@ use lib::raytracer::*;
 use lib::object::*;
 use lib::math::{Vec3, CameraTransform};
 
-const SCREEN_WIDTH: u32 = 640;
-const SCREEN_HEIGHT: u32 = 480;
+const SCREEN_WIDTH: u32 = 800;
+const SCREEN_HEIGHT: u32 = 600;
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -38,7 +38,7 @@ fn main() {
     ));
     scene.add(Sphere::new(
 	Vec3(0., 0., 0.5), 0.5,
-	Material::new_shine(Color::new(0x00, 0x00, 0xff), 8, 0.6)
+	Material::new_shine(Color::new(0x00, 0x00, 0xff), 100, 0.6)
     ));
     scene.add(Sphere::new(
 	Vec3(-1.5, 0.2, 0.5), 0.2,
@@ -48,7 +48,7 @@ fn main() {
 	Vec3(1.50, 0.2, 0.5), 0.2,
 	Material::new_shine(Color::new(0xff, 0xff, 0x00), 10, 0.8)
     ));
-    scene.add_light(PointLight::new(Vec3(0., 0.5, 2.), 0.75));
+    scene.add_light(PointLight::new(Vec3(0., 0.2, 2.), 1.));
     scene.add_light(DirectLight::new(Vec3(0., -1., 1.), 0.2));
     scene.add_light(AmbientLight::new(0.05));
     let mut raytracer = Raytracer::new(scene);
@@ -61,7 +61,7 @@ fn main() {
 	(VirtualKeyCode::Up, CameraTransform::RotateVertical(-std::f64::consts::FRAC_PI_8)),
 	(VirtualKeyCode::Down, CameraTransform::RotateVertical(std::f64::consts::FRAC_PI_8)),
 	(VirtualKeyCode::Plus, CameraTransform::ScaleDistance(2.)),
-	(VirtualKeyCode::Plus, CameraTransform::ScaleDistance(0.5)),
+	(VirtualKeyCode::Minus, CameraTransform::ScaleDistance(0.5)),
     ];
 
     event_loop.run(move |event, _, flow_control| {
